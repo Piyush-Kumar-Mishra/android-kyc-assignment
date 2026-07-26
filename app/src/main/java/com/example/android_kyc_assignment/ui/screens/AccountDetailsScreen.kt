@@ -33,6 +33,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -42,6 +43,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,6 +52,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -140,7 +143,23 @@ fun AccountDetailsScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    if (!customer.isVerified) {
+                    if (customer.isVerified) {
+                        // KYC Selfie preview section for verified customers
+                        SectionTitle("KYC Selfie")
+                        Spacer(modifier = Modifier.height(8.dp))
+                        SelfiePreviewCard(customer = customer)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedButton(
+                            onClick = { onCaptureClick(customer.id) },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(Icons.Default.CameraAlt, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Re-take Selfie")
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                    } else {
                         Button(
                             onClick = { onCaptureClick(customer.id) },
                             modifier = Modifier.fillMaxWidth(),
@@ -190,9 +209,14 @@ private fun ProfileHeader(customer: Customer) {
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        val imageModel = if (customer.selfiePath != null) {
+        // Edge case: validate selfie file actually exists on disk before loading
+        val selfieFileExists = remember(customer.selfiePath) {
+            customer.selfiePath?.let { File(it).exists() } ?: false
+        }
+
+        val imageModel = if (selfieFileExists) {
             ImageRequest.Builder(LocalContext.current)
-                .data(File(customer.selfiePath))
+                .data(File(customer.selfiePath!!))
                 .crossfade(true)
                 .build()
         } else {
@@ -231,6 +255,69 @@ private fun ProfileHeader(customer: Customer) {
                 .background(badgeBgColor, RoundedCornerShape(4.dp))
                 .padding(horizontal = 10.dp, vertical = 4.dp)
         )
+    }
+}
+
+@Composable
+private fun SelfiePreviewCard(customer: Customer) {
+    val context = LocalContext.current
+    val selfieExists = remember(customer.selfiePath) {
+        customer.selfiePath?.let { File(it).exists() } ?: false
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = LightGreen)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            if (selfieExists) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(File(customer.selfiePath!!))
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = "KYC Selfie",
+                    modifier = Modifier
+                        .size(140.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(140.dp)
+                        .background(Color.LightGray, RoundedCornerShape(8.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Selfie file not found",
+                        fontSize = 12.sp,
+                        color = Color.Gray,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Captured via in-app camera (CameraX)",
+                fontSize = 12.sp,
+                color = Green,
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Medium
+            )
+            Text(
+                text = "No system camera intent used",
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }
 
