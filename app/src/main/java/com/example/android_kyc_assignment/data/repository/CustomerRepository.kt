@@ -20,16 +20,20 @@ class CustomerRepository @Inject constructor(
 
     private val ifscCodes = listOf("HDFC0CAGSBK", "SBIN0000001", "ICIC0000001", "PUNB0244200", "UTIB0000001")
 
-    suspend fun getCustomers(): List<Customer> {
+    suspend fun getCustomers(
+        limit: Int = 15,
+        skip: Int = 0,
+        forceRefresh: Boolean = false
+    ): List<Customer> {
         val currentTime = System.currentTimeMillis()
-        if (cachedCustomers.isNotEmpty() && (currentTime - lastFetchTime) < cacheDurationMillis) {
+        if (!forceRefresh && skip == 0 && cachedCustomers.isNotEmpty() && (currentTime - lastFetchTime) < cacheDurationMillis) {
             return cachedCustomers
         }
 
-        val usersResponse = dummyJsonApi.getUsers()
+        val usersResponse = dummyJsonApi.getUsers(limit = limit, skip = skip)
         val kycStatuses = kycDao.getAllKycStatuses().associateBy { it.userId }
 
-        val customers = usersResponse.users.map { user ->
+        val newCustomers = usersResponse.users.map { user ->
             val randomGenerator = Random(user.id)
             val balance = round((randomGenerator.nextDouble() * 900000 + 100000) * 100) / 100
             val ifscCode = ifscCodes[user.id % 5]
@@ -57,14 +61,31 @@ class CustomerRepository @Inject constructor(
             )
         }
 
-        cachedCustomers = customers
-        lastFetchTime = currentTime
+        if (skip == 0 || forceRefresh) {
+            cachedCustomers = newCustomers
+            lastFetchTime = currentTime
+        } else {
+            val existingIds = cachedCustomers.map { it.id }.toSet()
+            cachedCustomers = cachedCustomers + newCustomers.filter { it.id !in existingIds }
+        }
 
-        return customers
+        return cachedCustomers
     }
 
     suspend fun getCustomerById(id: Int): Customer? {
         return getCustomers().find { it.id == id }
+    }
+
+    suspend fun refreshCustomerFromLocal(userId: Int): Customer? {
+        val kycStatuses = kycDao.getAllKycStatuses().associateBy { it.userId }
+        cachedCustomers = cachedCustomers.map { customer ->
+            val kycStatus = kycStatuses[customer.id]
+            customer.copy(
+                isVerified = kycStatus?.isVerified ?: customer.isVerified,
+                selfiePath = kycStatus?.selfiePath ?: customer.selfiePath
+            )
+        }
+        return cachedCustomers.find { it.id == userId }
     }
 
     suspend fun markAsVerified(userId: Int, selfiePath: String) {
