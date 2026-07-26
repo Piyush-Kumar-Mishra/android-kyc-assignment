@@ -1,4 +1,5 @@
 # Digital Bank KYC
+App Link - https://appetize.io/app/b_ji4beo7xbxjr3i35dusm2x6gge
 
 ### ⧉ The Solution
 
