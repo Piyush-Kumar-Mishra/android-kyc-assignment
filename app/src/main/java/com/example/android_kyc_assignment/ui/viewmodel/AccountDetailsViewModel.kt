@@ -33,7 +33,8 @@ class AccountDetailsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val customer = customerRepository.getCustomerById(customerId)
+                val customer = customerRepository.refreshCustomerFromLocal(customerId)
+                    ?: customerRepository.getCustomerById(customerId)
                 if (customer != null) {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
