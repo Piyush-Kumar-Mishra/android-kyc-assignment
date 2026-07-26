@@ -9,6 +9,7 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
@@ -17,20 +18,23 @@ private val DarkColorScheme = darkColorScheme(
     tertiary = Pink80
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
 
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
+private val AppColorScheme = lightColorScheme(
+    primary = Blue,
     onPrimary = Color.White,
+    primaryContainer = LightBlue,
+    onPrimaryContainer = Blue,
+    secondary = MediumGray,
     onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    background = Color.White,
+    onBackground = DarkGray,
+    surface = Color.White,
+    onSurface = DarkGray,
+    surfaceVariant = LightGray,
+    onSurfaceVariant = MediumGray,
+    outline = BorderGray,
+    error = Red,
+    onError = Color.White
 )
 
 @Composable
@@ -47,11 +51,11 @@ fun AndroidkycassignmentTheme(
         }
 
         darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+        else -> AppColorScheme
     }
 
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = AppColorScheme,
         typography = Typography,
         content = content
     )
